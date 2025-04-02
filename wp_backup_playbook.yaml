@@ -1,0 +1,88 @@
+---
+- hosts: MyServerGroup
+  gather_facts: true
+  tasks:
+    - name: Creates backup_files directory
+      ansible.builtin.file:
+        path: "{{ playbook_dir }}/server_syncs/{{ servername }}"
+        state: directory
+
+    - name: Creates backup_files directory
+      ansible.builtin.file:
+        path: "{{ playbook_dir }}/server_syncs/{{ servername }}"
+        state: directory
+
+    - name: Creates backup_files/html directory
+      ansible.builtin.file:
+        path: "{{ playbook_dir }}/server_syncs/{{ servername }}/{{ item.split('/')[-1] }}"
+        state: directory
+      loop: "{{ wp_folder_locations }}"
+
+    - name: Confirm hostname
+      debug:
+        msg: Logged into the server.
+
+    - name: Generate each database backup
+      shell: |
+        mysqldump -u {{ db_user_name}} -p"{{ db_user_password }}" {{ item }} --quick --lock-tables=false > "{{ item }}.sql" --no-tablespaces
+      no_log: true
+      loop: "{{ database_names }}"
+
+    - name: Wait until the database backups completed on server
+      wait_for:
+        path: "{{ item }}.sql"
+        state: present
+        msg: "Timeout to find file {{ item }}.sql"
+      loop: "{{ database_names }}"
+
+    - name: Downloading database backups to local computer
+      ansible.builtin.fetch:
+        src: "{{ item }}.sql"
+        dest: "{{ playbook_dir }}/server_syncs/{{ servername }}/{{ item }}.sql"
+        flat: yes
+      loop: "{{ database_names }}"
+
+    - name: Delete the remote backups files
+      file:
+        path: "{{ item }}.sql"
+        state: absent
+      loop: "{{ database_names }}"
+
+    - name: Databases downloaded
+      debug:
+        msg: Databases have been downloaded successfully.
+
+    - name: Sync wp files to local computer for each site
+      shell: rsync -av -e ssh {{ ansible_user_id }}@{{ inventory_hostname }}:{{ item }} {{ playbook_dir }}/server_syncs/{{ servername }}/{{ item.split('/')[-1] }}/
+      delegate_to: localhost
+      loop: "{{ wp_folder_locations }}"
+      register: r
+
+    - name: Sync Result
+      debug: msg="item.item={{item.item}}, item.stdout={{item.stdout.split('\n')}}"
+      with_items: "{{r.results}}"
+
+    - name: Restic backup
+      shell: /opt/homebrew/bin/restic -r {{ playbook_dir }}/restic_repo --verbose backup {{ playbook_dir }}/server_syncs --password-file={{ playbook_dir }}/pass.txt
+      delegate_to: localhost
+      run_once: true
+      register: backup_result
+
+    - name: Backup result
+      debug:
+        var: backup_result.stdout.split('\n')
+
+    - name: Restic backup prune keep last N
+      shell: /opt/homebrew/bin/restic -r {{ playbook_dir }}/restic_repo  forget --keep-last {{ backup_retention_keep_last_number }} --prune --password-file={{ playbook_dir }}/pass.txt
+      delegate_to: localhost
+      run_once: true
+      register: prune_result
+
+    - name: Restic prune result
+      debug:
+        var: prune_result.stdout.split('\n')
+
+    - name: Backup completed
+      debug:
+        msg: Backup completed.
+      run_once: true

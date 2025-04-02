@@ -1,0 +1,5 @@
+server_syncs
+restic_repo
+pass.txt
+server.inventory.ini
+.DS_Store
