@@ -42,6 +42,12 @@
         flat: yes
       loop: "{{ database_names }}"
 
+    - name: Downloading Caddyfile to local computer
+      ansible.builtin.fetch:
+        src: "/etc/caddy/Caddyfile"
+        dest: "{{ playbook_dir }}/server_syncs/{{ servername }}/Caddyfile"
+        flat: yes
+
     - name: Delete the remote backups files
       file:
         path: "{{ item }}.sql"
