@@ -6,6 +6,12 @@
 ansible-playbook -i server.inventory.ini wp_backup_playbook.yaml
 ```
 
+## Ad-hoc command
+
+```bash
+ansible -i server.inventory.ini MyServerGroup -m command -a "free -h"
+```
+
 ## Cron
 
 ```bash
