@@ -2,6 +2,11 @@
 - hosts: MyServerGroup
   gather_facts: true
   tasks:
+    - name: Boot up backup machine
+      shell: "{{ wol_command }}"
+      delegate_to: localhost
+      run_once: true
+
     - name: Creates backup_files directory
       ansible.builtin.file:
         path: "{{ playbook_dir }}/server_syncs/{{ servername }}"
@@ -73,17 +78,6 @@
     - name: Sync Result
       debug: msg="item.item={{item.item}}, item.stdout={{item.stdout.split('\n')}}"
       with_items: "{{r.results}}"
-
-    - name: Boot up backup machine
-      shell: "{{ wol_command }}"
-      delegate_to: localhost
-      run_once: true
-
-    - name: Wait for machine startup
-      ansible.builtin.pause:
-        minutes: 1
-      delegate_to: localhost
-      run_once: true
 
     - name: Restic backup
       shell: /opt/homebrew/bin/restic -r {{ restic_repo }} --verbose backup {{ playbook_dir }}/server_syncs --password-file={{ playbook_dir }}/pass.txt
