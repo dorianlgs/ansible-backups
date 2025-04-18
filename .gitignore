@@ -2,4 +2,5 @@ server_syncs
 restic_repo
 pass.txt
 server.inventory.ini
+server_checks.inventory.ini
 .DS_Store

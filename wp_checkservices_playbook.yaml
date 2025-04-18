@@ -1,0 +1,21 @@
+---
+- hosts: MyServerGroup
+  gather_facts: true
+  tasks:
+    - name: Check if Caddy service is running
+      systemd:
+        name: caddy
+        state: started
+        enabled: yes
+
+    - name: Check if PHP service is running
+      systemd:
+        name: php{{ php_version }}-fpm
+        state: started
+        enabled: yes
+
+    - name: Check if MySQL service is running
+      systemd:
+        name: mysql
+        state: started
+        enabled: yes

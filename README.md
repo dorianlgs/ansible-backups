@@ -1,9 +1,15 @@
 # ansible-backups
 
-## Run
+## Run WP Backups
 
 ```bash
 ansible-playbook -i server.inventory.ini wp_backup_playbook.yaml
+```
+
+## Run WP check services
+
+```bash
+ansible-playbook -i server_checks.inventory.ini wp_checkservices_playbook.yaml
 ```
 
 ## Ad-hoc command
