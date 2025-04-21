@@ -59,6 +59,12 @@
         dest: "{{ playbook_dir }}/server_syncs/{{ servername }}/php.ini"
         flat: yes
 
+    - name: Downloading php-fpm www.conf to local computer
+      ansible.builtin.fetch:
+        src: "/etc/php/{{ php_version }}/fpm/pool.d/www.conf"
+        dest: "{{ playbook_dir }}/server_syncs/{{ servername }}/www.conf"
+        flat: yes
+
     - name: Delete the remote backups files
       file:
         path: "{{ item }}.sql"
