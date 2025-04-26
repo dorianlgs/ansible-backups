@@ -105,6 +105,11 @@
       debug:
         var: prune_result.stdout.split('\n')
 
+    - name: WP Local backup
+      shell: "{{ wp_local_backup_command }}"
+      delegate_to: localhost
+      run_once: true
+
     - name: Shutdown backup machine
       shell: "{{ shutdown_command }}"
       delegate_to: localhost
