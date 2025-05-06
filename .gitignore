@@ -4,3 +4,7 @@ pass.txt
 server.inventory.ini
 server_checks.inventory.ini
 .DS_Store
+wp_local_pass.txt
+show_snapshots.sh
+main_photos_pass.txt
+check_backup_repos.sh
