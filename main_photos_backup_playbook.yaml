@@ -1,0 +1,26 @@
+---
+- hosts: all
+  gather_facts: no
+  tasks:
+    - name: Boot up PC
+      shell: "{{ wol_command }}"
+      delegate_to: localhost
+      run_once: true
+
+    - name: Wait PC boot process
+      ansible.builtin.pause:
+        minutes: 2
+
+    - name: WP Local backup
+      shell: "{{ backup_command }}"
+      delegate_to: localhost
+      run_once: true
+
+    - name: Shutdown backup machine
+      shell: "{{ shutdown_command }}"
+      delegate_to: localhost
+      run_once: true
+
+    - name: Backup completed
+      debug:
+        msg: Backup completed.
