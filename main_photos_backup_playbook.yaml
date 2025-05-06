@@ -11,12 +11,12 @@
       ansible.builtin.pause:
         minutes: 2
 
-    - name: WP Local backup
+    - name: Run local backup
       shell: "{{ backup_command }}"
       delegate_to: localhost
       run_once: true
 
-    - name: Shutdown backup machine
+    - name: Shutdown PC
       shell: "{{ shutdown_command }}"
       delegate_to: localhost
       run_once: true
