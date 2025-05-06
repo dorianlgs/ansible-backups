@@ -12,6 +12,12 @@ ansible-playbook -i server.inventory.ini wp_backup_playbook.yaml
 ansible-playbook -i server_checks.inventory.ini wp_checkservices_playbook.yaml
 ```
 
+## Run Main Photos Backup
+
+```bash
+ansible-playbook -i server_main_photos.inventory.ini main_photos_backup_playbook.yaml
+```
+
 ## Ad-hoc command
 
 ```bash
