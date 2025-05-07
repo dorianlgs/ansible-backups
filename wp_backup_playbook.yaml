@@ -76,7 +76,7 @@
         msg: Databases have been downloaded successfully.
 
     - name: Sync wp files to local computer for each site
-      shell: rsync -av -e ssh {{ ansible_user_id }}@{{ inventory_hostname }}:{{ item }} {{ playbook_dir }}/server_syncs/{{ servername }}/{{ item.split('/')[-1] }}/
+      shell: rsync -av --exclude=wp-content/cache -e ssh {{ ansible_user_id }}@{{ inventory_hostname }}:{{ item }} {{ playbook_dir }}/server_syncs/{{ servername }}/{{ item.split('/')[-1] }}/
       delegate_to: localhost
       loop: "{{ wp_folder_locations }}"
       register: r
