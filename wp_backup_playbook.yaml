@@ -86,7 +86,10 @@
       with_items: "{{r.results}}"
 
     - name: Restic backup
-      shell: /opt/homebrew/bin/restic -r {{ restic_repo }} --verbose backup {{ playbook_dir }}/server_syncs
+      shell: |
+        export AWS_ACCESS_KEY_ID={{ aws_access_key_id }}
+        export AWS_SECRET_ACCESS_KEY={{ aws_secret_access_key }}
+        /opt/homebrew/bin/restic -r {{ restic_repo }} --verbose backup {{ playbook_dir }}/server_syncs --password-file {{ playbook_dir }}/pass.txt
       delegate_to: localhost
       run_once: true
       register: backup_result
@@ -96,7 +99,10 @@
         var: backup_result.stdout.split('\n')
 
     - name: Restic backup prune keep last N
-      shell: /opt/homebrew/bin/restic -r {{ restic_repo }}  forget --keep-last {{ backup_retention_keep_last_number }} --prune
+      shell: |
+        export AWS_ACCESS_KEY_ID={{ aws_access_key_id }}
+        export AWS_SECRET_ACCESS_KEY={{ aws_secret_access_key }}
+        /opt/homebrew/bin/restic -r {{ restic_repo }}  forget --keep-last {{ backup_retention_keep_last_number }} --prune --password-file {{ playbook_dir }}/pass.txt
       delegate_to: localhost
       run_once: true
       register: prune_result
