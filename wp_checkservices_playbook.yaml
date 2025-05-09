@@ -1,5 +1,6 @@
 ---
 - hosts: MyServerGroup
+  ignore_unreachable: true
   gather_facts: true
   tasks:
     - name: Check if Caddy service is running
