@@ -1,12 +1,12 @@
 ---
 - hosts: MyServerGroup
   gather_facts: true
-  vars:
-    db_root_password: "{{ lookup('community.general.random_string', length=10, min_lower=1, min_upper=1, min_numeric=1, min_special=1, override_special='-=+!#$()[]') }}"
-    db_password: "{{ lookup('community.general.random_string', length=10, min_lower=1, min_upper=1, min_numeric=1, min_special=1, override_special='-=+!#$()[]') }}"
-    db_user: "{{ db_name }}_user"
-
   tasks:
+    - set_fact:
+        db_root_password: "{{ lookup('password', '/dev/null length=32 chars=ascii_letters') + '!#' }}"
+        db_password: "{{ lookup('password', '/dev/null length=32 chars=ascii_letters') + '!#' }}"
+        db_user: "{{ db_name }}_user"
+
     - name: DB root password
       debug:
         msg: "DB root password: {{ db_root_password }}"
@@ -16,11 +16,6 @@
 
     - name: Install dependencies
       shell: "apt install caddy unzip mysql-server php php-fpm php-mysql php-mbstring php-bcmath php-zip php-gd php-curl php-xml php-imagick php-intl -y"
-
-    - name: "Install ansible python3 mysql dependency"
-      apt:
-        name: python3-pymysql
-        state: latest
 
     - name: Get PHP version
       shell: ls /etc/php/
@@ -109,34 +104,26 @@
     - name: Replace DB host
       shell: "sed -i 's/{{ previous_host }}/{{ new_host }}/g' /var/www/wp_db.sql"
 
-    - name: Create a new database
-      community.mysql.mysql_db:
-        name: "{{ db_name }}"
-        state: present
-        login_unix_socket: /run/mysqld/mysqld.sock
+    - name: Create create_db.sql
+      copy:
+        dest: "/var/www/create_db.sql"
+        content: |
+          CREATE DATABASE {{ db_name }};
+          CREATE USER '{{ db_user }}'@'localhost' IDENTIFIED BY '{{ db_password }}';
+          GRANT ALL PRIVILEGES ON {{ db_name }}.* TO '{{ db_user }}'@'localhost';
+          FLUSH PRIVILEGES;
+          use {{ db_name }};
+          source /var/www/wp_db.sql
 
-    - name: Create database user
-      community.mysql.mysql_user:
-        check_implicit_admin: true
-        login_user: "root"
-        login_password: "{{ db_root_password }}"
-        login_unix_socket: /run/mysqld/mysqld.sock
-        name: "{{ db_user }}"
-        password: "{{ db_password }}"
-        priv: "*.*:ALL"
-        state: present
+    - name: Create DB
+      shell: "mysql -u root < /var/www/create_db.sql"
 
-    - name: Restore database
-      community.mysql.mysql_db:
-        check_implicit_admin: true
-        login_user: "root"
-        login_password: "{{ db_root_password }}"
-        login_unix_socket: /run/mysqld/mysqld.sock
-        name: "{{ db_name }}"
-        state: import
-        target: /var/www/wp_db.sql
+    - name: Delete create_db.sql
+      file:
+        path: /var/www/create_db.sql
+        state: absent
 
-    - name: Delete the remote wp_db.sql
+    - name: Delete wp_db.sql
       file:
         path: /var/www/wp_db.sql
         state: absent
@@ -145,7 +132,7 @@
       copy:
         dest: "/etc/caddy/Caddyfile"
         content: |
-          http://{{ new_host }}, http://www.{{ new_host }} {
+          {{ new_host }}, www.{{ new_host }} {
 
            	root * /var/www/html/{{ new_host }}
            	encode gzip
