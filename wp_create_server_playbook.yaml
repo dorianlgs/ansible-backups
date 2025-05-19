@@ -1,0 +1,168 @@
+---
+- hosts: MyServerGroup
+  gather_facts: true
+  vars:
+    db_root_password: "{{ lookup('community.general.random_string', length=10, min_lower=1, min_upper=1, min_numeric=1, min_special=1, override_special='-=+!#$()[]') }}"
+    db_password: "{{ lookup('community.general.random_string', length=10, min_lower=1, min_upper=1, min_numeric=1, min_special=1, override_special='-=+!#$()[]') }}"
+    db_user: "{{ db_name }}_user"
+
+  tasks:
+    - name: DB root password
+      debug:
+        msg: "DB root password: {{ db_root_password }}"
+
+    - name: Apt update & upgrade
+      shell: "apt update && apt upgrade -y"
+
+    - name: Install dependencies
+      shell: "apt install caddy unzip mysql-server php php-fpm php-mysql php-mbstring php-bcmath php-zip php-gd php-curl php-xml php-imagick php-intl -y"
+
+    - name: "Install ansible python3 mysql dependency"
+      apt:
+        name: python3-pymysql
+        state: latest
+
+    - name: Get PHP version
+      shell: ls /etc/php/
+      register: php_version
+
+    - name: Enable Mysql
+      shell: "systemctl enable mysql"
+
+    - name: Start Mysql
+      shell: "systemctl start mysql"
+
+    - name: Secure Mysql installation
+      shell: |
+        sed -e 's/\s*\([\+0-9a-zA-Z]*\).*/\1/' << EOF | mysql_secure_installation
+              # current root password (emtpy after installation)
+            y # Set root password?
+            {{ db_root_password }} # new root password
+            {{ db_root_password }} # new root password
+            y # Remove anonymous users?
+            y # Disallow root login remotely?
+            y # Remove test database and access to it?
+            y # Reload privilege tables now?
+        EOF
+
+    - name: Restart Mysql
+      shell: "systemctl restart mysql"
+
+    - name: Check if Caddy service is running
+      systemd:
+        name: caddy
+        state: started
+        enabled: yes
+
+    - name: Check if PHP service is running
+      systemd:
+        name: php{{ php_version.stdout }}-fpm
+        state: started
+        enabled: yes
+
+    - name: Check if MySQL service is running
+      systemd:
+        name: mysql
+        state: started
+        enabled: yes
+
+    - name: Recursively create directory
+      ansible.builtin.file:
+        path: /var/www/html/{{ new_host }}
+        state: directory
+
+    - name: Copy wp_files.zip
+      ansible.builtin.copy:
+        src: wp_files.zip
+        dest: /var/www/html/{{ new_host }}/wp_files.zip
+
+    - name: Check wp folder
+      stat:
+        path: /var/www/html/{{ new_host }}/wp-config.php
+      register: wp_config_file
+
+    - name: Unzip wp_files.zip
+      shell: "unzip /var/www/html/{{ new_host }}/wp_files.zip -d /var/www/html/{{ new_host }}/"
+      when: not wp_config_file.stat.exists
+
+    - name: Delete the remote wp_files.zip
+      file:
+        path: "/var/www/html/{{ new_host }}/wp_files.zip"
+        state: absent
+
+    - name: wp folder permissions
+      shell: |
+        find /var/www/html/{{ new_host }}/ -type f -exec chmod 0777 {} \;
+        find /var/www/html/{{ new_host }}/ -type d -exec chmod 0777 {} \;
+
+    - name: Replace db name and password in wp-config.php
+      shell: |
+        sed -i "s;\(define([[:space:]]*'DB_NAME',[[:space:]]*\)\(.*\)\()\;\);\1'{{ db_name }}'\3;g" /var/www/html/{{ new_host }}/wp-config.php
+        sed -i "s;\(define([[:space:]]*'DB_USER',[[:space:]]*\)\(.*\)\()\;\);\1'{{ db_user }}'\3;g" /var/www/html/{{ new_host }}/wp-config.php
+        sed -i "s;\(define([[:space:]]*'DB_PASSWORD',[[:space:]]*\)\(.*\)\()\;\);\1'{{ db_password }}'\3;g" /var/www/html/{{ new_host }}/wp-config.php
+
+    - name: Copy BD script
+      ansible.builtin.copy:
+        src: wp_db.sql
+        dest: /var/www/wp_db.sql
+
+    - name: Replace DB host
+      shell: "sed -i 's/{{ previous_host }}/{{ new_host }}/g' /var/www/wp_db.sql"
+
+    - name: Create a new database
+      community.mysql.mysql_db:
+        name: "{{ db_name }}"
+        state: present
+        login_unix_socket: /run/mysqld/mysqld.sock
+
+    - name: Create database user
+      community.mysql.mysql_user:
+        check_implicit_admin: true
+        login_user: "root"
+        login_password: "{{ db_root_password }}"
+        login_unix_socket: /run/mysqld/mysqld.sock
+        name: "{{ db_user }}"
+        password: "{{ db_password }}"
+        priv: "*.*:ALL"
+        state: present
+
+    - name: Restore database
+      community.mysql.mysql_db:
+        check_implicit_admin: true
+        login_user: "root"
+        login_password: "{{ db_root_password }}"
+        login_unix_socket: /run/mysqld/mysqld.sock
+        name: "{{ db_name }}"
+        state: import
+        target: /var/www/wp_db.sql
+
+    - name: Delete the remote wp_db.sql
+      file:
+        path: /var/www/wp_db.sql
+        state: absent
+
+    - name: Creating a file with content
+      copy:
+        dest: "/etc/caddy/Caddyfile"
+        content: |
+          http://{{ new_host }}, http://www.{{ new_host }} {
+
+           	root * /var/www/html/{{ new_host }}
+           	encode gzip
+           	file_server
+           	php_fastcgi unix//run/php/php{{ php_version.stdout }}-fpm.sock
+
+           	@disallowed {
+            		path /xmlrpc.php
+            		path *.sql
+            		path /wp-content/uploads/*.php
+           	}
+          }
+
+    - name: Reiniciar Caddy
+      shell: "systemctl restart caddy"
+
+    - name: Wordpress Ready
+      debug:
+        msg: Wordpress Ready.
+      run_once: true
