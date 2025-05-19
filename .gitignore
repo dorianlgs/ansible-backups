@@ -9,3 +9,6 @@ show_snapshots.sh
 main_photos_pass.txt
 check_backup_repos.sh
 server_main_photos.inventory.ini
+wp_db.sql
+wp_files.zip
+server_create.inventory.ini

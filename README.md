@@ -18,6 +18,13 @@ ansible-playbook -i server_checks.inventory.ini wp_checkservices_playbook.yaml
 ansible-playbook -i server_main_photos.inventory.ini main_photos_backup_playbook.yaml
 ```
 
+## Run Create WP Server
+
+```bash
+ansible-playbook -i server_create.inventory.ini wp_create_server_playbook.yaml
+```
+
+
 ## Ad-hoc command
 
 ```bash
