@@ -104,6 +104,11 @@
     - name: Replace db host
       shell: "sed -i 's/{{ previous_host }}/{{ new_host }}/g' /var/www/wp_db.sql"
 
+    - name: Replace wp-config.php URL
+      shell: |
+        sed -i 's/{{ testbed_host }}/{{ new_host }}/g' /var/www/html/{{ new_host }}/wp-config.php
+        sed -i 's/{{ previous_host }}/{{ new_host }}/g' /var/www/html/{{ new_host }}/wp-config.php
+
     - name: Create create_db.sql
       copy:
         dest: "/var/www/create_db.sql"
