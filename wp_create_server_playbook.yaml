@@ -21,13 +21,13 @@
       shell: ls /etc/php/
       register: php_version
 
-    - name: Enable Mysql
+    - name: Enable MySQL
       shell: "systemctl enable mysql"
 
-    - name: Start Mysql
+    - name: Start MySQL
       shell: "systemctl start mysql"
 
-    - name: Secure Mysql installation
+    - name: Secure MySQL installation
       shell: |
         sed -e 's/\s*\([\+0-9a-zA-Z]*\).*/\1/' << EOF | mysql_secure_installation
               # current root password (emtpy after installation)
@@ -40,7 +40,7 @@
             y # Reload privilege tables now?
         EOF
 
-    - name: Restart Mysql
+    - name: Restart MySQL
       shell: "systemctl restart mysql"
 
     - name: Check if Caddy service is running
@@ -85,7 +85,7 @@
         path: "/var/www/html/{{ new_host }}/wp_files.zip"
         state: absent
 
-    - name: wp folder permissions
+    - name: Change wp folder permissions
       shell: |
         find /var/www/html/{{ new_host }}/ -type f -exec chmod 0777 {} \;
         find /var/www/html/{{ new_host }}/ -type d -exec chmod 0777 {} \;
@@ -96,12 +96,12 @@
         sed -i "s;\(define([[:space:]]*'DB_USER',[[:space:]]*\)\(.*\)\()\;\);\1'{{ db_user }}'\3;g" /var/www/html/{{ new_host }}/wp-config.php
         sed -i "s;\(define([[:space:]]*'DB_PASSWORD',[[:space:]]*\)\(.*\)\()\;\);\1'{{ db_password }}'\3;g" /var/www/html/{{ new_host }}/wp-config.php
 
-    - name: Copy BD script
+    - name: Copy db script
       ansible.builtin.copy:
         src: wp_db.sql
         dest: /var/www/wp_db.sql
 
-    - name: Replace DB host
+    - name: Replace db host
       shell: "sed -i 's/{{ previous_host }}/{{ new_host }}/g' /var/www/wp_db.sql"
 
     - name: Create create_db.sql
@@ -115,7 +115,7 @@
           use {{ db_name }};
           source /var/www/wp_db.sql
 
-    - name: Create DB
+    - name: Create db
       shell: "mysql -u root < /var/www/create_db.sql"
 
     - name: Delete create_db.sql
@@ -146,10 +146,10 @@
            	}
           }
 
-    - name: Reiniciar Caddy
+    - name: Restart caddy
       shell: "systemctl restart caddy"
 
-    - name: Wordpress Ready
+    - name: Wordpress ready
       debug:
-        msg: Wordpress Ready.
+        msg: Wordpress ready.
       run_once: true
