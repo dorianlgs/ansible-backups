@@ -1,11 +1,13 @@
 ---
 - hosts: MyServerGroup
   gather_facts: true
+  vars:
+    db_name: "{{ new_host.split('.')[0] }}"
+    db_user: "{{ db_name }}_user"
   tasks:
     - set_fact:
         db_root_password: "{{ lookup('password', '/dev/null length=32 chars=ascii_letters') + '!#' }}"
         db_password: "{{ lookup('password', '/dev/null length=32 chars=ascii_letters') + '!#' }}"
-        db_user: "{{ db_name }}_user"
 
     - name: DB root password
       debug:
