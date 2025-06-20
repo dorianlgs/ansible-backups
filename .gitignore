@@ -12,3 +12,4 @@ server_main_photos.inventory.ini
 wp_db.sql
 wp_files.zip
 server_create.inventory.ini
+restore_wp_local.sh
