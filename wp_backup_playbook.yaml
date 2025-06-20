@@ -2,11 +2,6 @@
 - hosts: MyServerGroup
   gather_facts: true
   tasks:
-    - name: Boot up backup machine
-      shell: "{{ wol_command }}"
-      delegate_to: localhost
-      run_once: true
-
     - name: Creates backup_files directory
       ansible.builtin.file:
         path: "{{ playbook_dir }}/server_syncs/{{ servername }}"
@@ -110,16 +105,6 @@
     - name: Restic prune result
       debug:
         var: prune_result.stdout.split('\n')
-
-    - name: WP Local backup
-      shell: "{{ wp_local_backup_command }}"
-      delegate_to: localhost
-      run_once: true
-
-    - name: Shutdown backup machine
-      shell: "{{ shutdown_command }}"
-      delegate_to: localhost
-      run_once: true
 
     - name: Backup completed
       debug:
