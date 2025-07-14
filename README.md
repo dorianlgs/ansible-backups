@@ -3,7 +3,7 @@
 ## Run WP Backups
 
 ```bash
-ansible-playbook -i server.inventory.ini wp_backup_playbook.yaml
+ansible-playbook -i server.inventory.template.ini wp_backup_playbook.yaml
 ```
 
 ## Run WP check services
@@ -34,5 +34,5 @@ ansible -i server.inventory.ini MyServerGroup -m command -a "free -h"
 ## Cron
 
 ```bash
-5 4 * * * /opt/homebrew/bin/ansible-playbook -i /Users/doriangonzalez/Workspace/ansible-backups/server.inventory.ini /Users/doriangonzalez/Workspace/ansible-backups/wp_backup_playbook.yaml
+5 4 * * * /opt/homebrew/bin/ansible-playbook -i /Users/doriangonzalez/Workspace/ansible-backups/server.inventory.template.ini /Users/doriangonzalez/Workspace/ansible-backups/wp_backup_playbook.yaml
 ```
