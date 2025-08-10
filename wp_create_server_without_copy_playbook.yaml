@@ -1,0 +1,152 @@
+---
+- hosts: MyServerGroup
+  gather_facts: true
+  tasks:
+    - set_fact:
+        db_root_password: "{{ lookup('password', '/dev/null length=32 chars=ascii_letters') + '!#' }}"
+        db_password: "{{ lookup('password', '/dev/null length=32 chars=ascii_letters') + '!#' }}"
+
+    - name: DB root password
+      debug:
+        msg: "DB root password: {{ db_root_password }}"
+
+    - name: DB password
+      debug:
+        msg: "DB password: {{ db_password }}"
+
+    - name: Apt update & upgrade
+      shell: "apt update && apt upgrade -y"
+
+    - name: Install dependencies
+      shell: "apt install caddy unzip mysql-server php php-fpm php-mysql php-mbstring php-bcmath php-zip php-gd php-curl php-xml php-imagick php-intl -y"
+
+    - name: Get PHP version
+      shell: ls /etc/php/
+      register: php_version
+
+    - name: Enable MySQL
+      shell: "systemctl enable mysql"
+
+    - name: Start MySQL
+      shell: "systemctl start mysql"
+
+    - name: Secure MySQL installation
+      shell: |
+        sed -e 's/\s*\([\+0-9a-zA-Z]*\).*/\1/' << EOF | mysql_secure_installation
+              # current root password (emtpy after installation)
+            y # Set root password?
+            {{ db_root_password }} # new root password
+            {{ db_root_password }} # new root password
+            y # Remove anonymous users?
+            y # Disallow root login remotely?
+            y # Remove test database and access to it?
+            y # Reload privilege tables now?
+        EOF
+
+    - name: Restart MySQL
+      shell: "systemctl restart mysql"
+
+    - name: Check if Caddy service is running
+      systemd:
+        name: caddy
+        state: started
+        enabled: yes
+
+    - name: Check if PHP service is running
+      systemd:
+        name: php{{ php_version.stdout }}-fpm
+        state: started
+        enabled: yes
+
+    - name: Check if MySQL service is running
+      systemd:
+        name: mysql
+        state: started
+        enabled: yes
+
+    - name: Recursively create directory
+      ansible.builtin.file:
+        path: /var/www/html/{{ new_host }}
+        state: directory
+
+    - name: Copy wp_files.zip
+      ansible.builtin.copy:
+        src: wp_files.zip
+        dest: /var/www/html/{{ new_host }}/wp_files.zip
+
+    - name: Check wp folder
+      stat:
+        path: /var/www/html/{{ new_host }}/wp-config.php
+      register: wp_config_file
+
+    - name: Unzip wp_files.zip
+      shell: "unzip /var/www/html/{{ new_host }}/wp_files.zip -d /var/www/html/{{ new_host }}/"
+      when: not wp_config_file.stat.exists
+
+    - name: Delete the remote wp_files.zip
+      file:
+        path: "/var/www/html/{{ new_host }}/wp_files.zip"
+        state: absent
+
+    - name: Change wp folder permissions
+      shell: |
+        find /var/www/html/{{ new_host }}/ -type f -exec chmod 0777 {} \;
+        find /var/www/html/{{ new_host }}/ -type d -exec chmod 0777 {} \;
+
+    - name: Replace db name and password in wp-config.php
+      shell: |
+        sed -i "s;\(define([[:space:]]*'DB_NAME',[[:space:]]*\)\(.*\)\()\;\);\1'{{ db_name }}'\3;g" /var/www/html/{{ new_host }}/wp-config.php
+        sed -i "s;\(define([[:space:]]*'DB_USER',[[:space:]]*\)\(.*\)\()\;\);\1'{{ db_user }}'\3;g" /var/www/html/{{ new_host }}/wp-config.php
+        sed -i "s;\(define([[:space:]]*'DB_PASSWORD',[[:space:]]*\)\(.*\)\()\;\);\1'{{ db_password }}'\3;g" /var/www/html/{{ new_host }}/wp-config.php
+
+    - name: Copy db script
+      ansible.builtin.copy:
+        src: wp_db.sql
+        dest: /var/www/wp_db.sql
+
+    - name: Create create_db.sql
+      copy:
+        dest: "/var/www/create_db.sql"
+        content: |
+          CREATE DATABASE {{ db_name }};
+          CREATE USER '{{ db_user }}'@'localhost' IDENTIFIED BY '{{ db_password }}';
+          GRANT ALL PRIVILEGES ON {{ db_name }}.* TO '{{ db_user }}'@'localhost';
+          FLUSH PRIVILEGES;
+          use {{ db_name }};
+          source /var/www/wp_db.sql
+
+    - name: Create db
+      shell: "mysql -u root < /var/www/create_db.sql"
+
+    - name: Delete create_db.sql
+      file:
+        path: /var/www/create_db.sql
+        state: absent
+
+    - name: Delete wp_db.sql
+      file:
+        path: /var/www/wp_db.sql
+        state: absent
+
+    - name: Creating a file with content
+      copy:
+        dest: "/etc/caddy/Caddyfile"
+        content: |
+          {{ new_host }}, www.{{ new_host }} {
+
+           	root * /var/www/html/{{ new_host }}
+           	encode gzip
+           	file_server
+           	php_fastcgi unix//run/php/php{{ php_version.stdout }}-fpm.sock
+
+           	@disallowed {
+            		path /xmlrpc.php
+            		path *.sql
+            		path /wp-content/uploads/*.php
+           	}
+          }
+
+    - name: Wordpress almost ready
+      debug:
+        msg: Wordpress almost ready.
+      run_once: true
