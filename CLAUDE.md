@@ -112,3 +112,7 @@ Each server entry requires:
 - Do not read the .txt files
 - Do not read the .sh files
 - Do not read the .ini files
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.

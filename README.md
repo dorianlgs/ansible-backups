@@ -43,3 +43,7 @@ Daily backup at 4:05 AM:
 ```bash
 5 4 * * * /opt/homebrew/bin/ansible-playbook -i /Users/doriangonzalez/Workspace/ansible-backups/server.inventory.template.ini /Users/doriangonzalez/Workspace/ansible-backups/wp_backup_playbook.yaml
 ```
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
