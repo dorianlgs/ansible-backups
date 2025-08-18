@@ -14,3 +14,4 @@ wp_files.zip
 server_create.inventory.ini
 restore_wp_local.sh
 server_create_without_copy.inventory.ini
+server.inventory.old.ini
