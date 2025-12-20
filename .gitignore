@@ -17,3 +17,5 @@ server_create_without_copy.inventory.ini
 server.inventory.old.ini
 laptop_lenovo_pass.txt
 cron.log
+local_backup_vars.yaml
+local_backup_playbook.yaml
