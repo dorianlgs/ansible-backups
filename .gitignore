@@ -20,3 +20,4 @@ cron.log
 local_backup_vars.yaml
 local_backup_playbook.yaml
 local_backup_pass.txt
+local_backup.log
