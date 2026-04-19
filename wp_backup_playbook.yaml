@@ -98,7 +98,7 @@
       shell: |
         export AWS_ACCESS_KEY_ID={{ aws_access_key_id }}
         export AWS_SECRET_ACCESS_KEY={{ aws_secret_access_key }}
-        /opt/homebrew/bin/restic -r {{ restic_repo }}  forget --keep-last {{ backup_retention_keep_last_number }} --prune --password-file {{ playbook_dir }}/pass.txt
+        /opt/homebrew/bin/restic -r {{ restic_repo }}  forget --group-by host --keep-last {{ backup_retention_keep_last_number }} --prune --password-file {{ playbook_dir }}/pass.txt
       delegate_to: localhost
       run_once: true
       register: prune_result
