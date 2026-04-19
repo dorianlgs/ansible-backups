@@ -4,17 +4,17 @@
   tasks:
     - name: Creates backup_files directory
       ansible.builtin.file:
-        path: "{{ playbook_dir }}/server_syncs/{{ servername }}"
+        path: "/Volumes/TANK/server_syncs/{{ servername }}"
         state: directory
 
     - name: Creates backup_files directory
       ansible.builtin.file:
-        path: "{{ playbook_dir }}/server_syncs/{{ servername }}"
+        path: "/Volumes/TANK/server_syncs/{{ servername }}"
         state: directory
 
     - name: Creates backup_files/html directory
       ansible.builtin.file:
-        path: "{{ playbook_dir }}/server_syncs/{{ servername }}/{{ item.split('/')[-1] }}"
+        path: "/Volumes/TANK/server_syncs/{{ servername }}/{{ item.split('/')[-1] }}"
         state: directory
       loop: "{{ wp_folder_locations }}"
 
@@ -38,26 +38,26 @@
     - name: Downloading database backups to local computer
       ansible.builtin.fetch:
         src: "{{ item }}.sql"
-        dest: "{{ playbook_dir }}/server_syncs/{{ servername }}/{{ item }}.sql"
+        dest: "/Volumes/TANK/server_syncs/{{ servername }}/{{ item }}.sql"
         flat: yes
       loop: "{{ database_names }}"
 
     - name: Downloading Caddyfile to local computer
       ansible.builtin.fetch:
         src: "/etc/caddy/Caddyfile"
-        dest: "{{ playbook_dir }}/server_syncs/{{ servername }}/Caddyfile"
+        dest: "/Volumes/TANK/server_syncs/{{ servername }}/Caddyfile"
         flat: yes
 
     - name: Downloading php.ini to local computer
       ansible.builtin.fetch:
         src: "/etc/php/{{ php_version }}/fpm/php.ini"
-        dest: "{{ playbook_dir }}/server_syncs/{{ servername }}/php.ini"
+        dest: "/Volumes/TANK/server_syncs/{{ servername }}/php.ini"
         flat: yes
 
     - name: Downloading php-fpm www.conf to local computer
       ansible.builtin.fetch:
         src: "/etc/php/{{ php_version }}/fpm/pool.d/www.conf"
-        dest: "{{ playbook_dir }}/server_syncs/{{ servername }}/www.conf"
+        dest: "/Volumes/TANK/server_syncs/{{ servername }}/www.conf"
         flat: yes
 
     - name: Delete the remote db backups files
@@ -71,7 +71,7 @@
         msg: Databases have been downloaded successfully.
 
     - name: Sync wp files to local computer for each site
-      shell: rsync -av --exclude=wp-content/cache --exclude=wp-content/et-cache -e ssh {{ ansible_user_id }}@{{ inventory_hostname }}:{{ item }} {{ playbook_dir }}/server_syncs/{{ servername }}/{{ item.split('/')[-1] }}/
+      shell: rsync -av --exclude=wp-content/cache --exclude=wp-content/et-cache -e ssh {{ ansible_user_id }}@{{ inventory_hostname }}:{{ item }} /Volumes/TANK/server_syncs/{{ servername }}/{{ item.split('/')[-1] }}/
       delegate_to: localhost
       loop: "{{ wp_folder_locations }}"
       register: r
@@ -85,7 +85,7 @@
       shell: |
         export AWS_ACCESS_KEY_ID={{ aws_access_key_id }}
         export AWS_SECRET_ACCESS_KEY={{ aws_secret_access_key }}
-        /opt/homebrew/bin/restic -r {{ restic_repo }} --verbose backup {{ playbook_dir }}/server_syncs --password-file {{ playbook_dir }}/pass.txt
+        /opt/homebrew/bin/restic -r {{ restic_repo }} --verbose backup /Volumes/TANK/server_syncs --password-file {{ playbook_dir }}/pass.txt
       delegate_to: localhost
       run_once: true
       register: backup_result
